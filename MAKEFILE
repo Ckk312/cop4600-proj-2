@@ -1,0 +1,5 @@
+chash: chash.o
+	gcc -o chash chash.o -lpthread
+
+chash.o: chash.c chash.h insert.c delete.c search.c
+	gcc -c chash.o chash.c -lpthread
