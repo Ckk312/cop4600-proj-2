@@ -10,20 +10,18 @@
 
 #define BUFLEN 100
 
-hashRecord ** info;
+hashRecord ** hash_struct;
 
-char ** strsplit(char * _Str, const char * _Delim)
+char ** strsplit(char ** _StrArray, char * _Str, const char * _Delim)
 {
-	uint32_t length = strlen(_Str);
-	char ** strarray = (char **) malloc(length * sizeof(char *));
 	char * res = strtok(_Str, _Delim);
 	for (size_t i = 0; res != NULL; i++)
 	{
-		strarray[i] = res;
+		_StrArray[i] = res;
 		res = strtok(NULL, _Delim);
 	}
 
-	return strarray;
+	return _StrArray;
 }
 
 int main(int argc, char * argv[])
@@ -41,39 +39,41 @@ int main(int argc, char * argv[])
 
 	size_t processes_number = 1, i = 0;
 	char check[BUFLEN];
-	char ** items;
+	char * items[BUFLEN - 1];
 
 	output_file = fopen("output.txt", "a");
 	fgets(check, BUFLEN, input_file);
-	items = strsplit(check, ",");
+	strsplit(items, check, ",");
 	processes_number = atoi(items[1]);
 
-	info = (hashRecord **) malloc(processes_number * sizeof(hashRecord *));
-	for (size_t j = 0; j < processes_number; j++)
-		info[j] = (hashRecord *) malloc(sizeof(hashRecord));
+	hash_struct = (hashRecord **) malloc(processes_number * sizeof(hashRecord *));
 	pthread_t thread_list[processes_number];
 
 	printf("Running %d threads\n", processes_number);
 	fprintf(output_file, "Running %d threads\n", processes_number);
 
-	write_lock = read_lock = PTHREAD_MUTEX_INITIALIZER;
+	write_lock = delete_lock = PTHREAD_MUTEX_INITIALIZER;
 	state_cond = PTHREAD_COND_INITIALIZER;
 
 	while (fgets(check, BUFLEN, input_file))
 	{
-		items = strsplit(check, ",");
+		hash_struct[i] = (hashRecord *) malloc(sizeof(hashRecord));
+		strsplit(items, check, ",");
 
-		info[i]->name = items[1];
-		info[i]->salary = (uint32_t) atoi(items[2]);
+		printf("|| %s, %s, %d\n", items[0], items[1], atoi(items[2]));
 
-		if (strcmp(items[0], "insert") == 0)
-			pthread_create(&thread_list[i], NULL, insert_hash_r, info[i]);
+		hash_struct[i]->name = items[1];
+
+		if (strcmp(items[0], "insert") == 0) {
+			hash_struct[i]->salary = atoi(items[2]);
+			pthread_create(&thread_list[i], NULL, insert_hash_r, hash_struct[i]);
+		}
 
 		else if (strcmp(items[0], "delete") == 0)
-			pthread_create(&thread_list[i], NULL, delete_hash_r, info[i]);
+			pthread_create(&thread_list[i], NULL, delete_hash_r, hash_struct[i]);
 
 		else if(strcmp(items[0], "search") == 0)
-			pthread_create(&thread_list[i], NULL, search_hash_r, info[i]);
+			pthread_create(&thread_list[i], NULL, search_hash_r, hash_struct[i]);
 
 		i++;
 	}
@@ -90,10 +90,9 @@ int main(int argc, char * argv[])
 	fprintf(output_file, "Finished all threads.\n");
 
 	fclose(output_file);
-
-	for(size_t j = 0; j < processes_number; j++)
-		free(info[j]);
-	free(info);
+	for (size_t j = 0; j < processes_number; j++)
+		free(hash_struct[j]);
+	free(hash_struct);
 
 	return 0;
 }
