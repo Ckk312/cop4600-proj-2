@@ -6,7 +6,7 @@ void * insert_hash_r(void * hash_record)
 {
     hashRecord * hash_rec = (hashRecord *) hash_record;
     hash_rec->hash = jenkins_hash((uint8_t *) hash_rec->name, strlen(hash_rec->name));
-    printf("%ld: INSERT, %s\n", time(NULL), hashRecord_toString(hash_rec));
+    printf("%ld: INSERT,%u,%s,%d\n", time(NULL), hash_rec->hash, hash_rec->name, hash_rec->salary);
 
     insert_lock_acquire();
     

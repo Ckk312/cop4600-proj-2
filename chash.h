@@ -9,7 +9,7 @@
 #include <string.h>
 
 // globals
-size_t queues[3];
+size_t queues[3] = {0, 0, 0};
 pthread_cond_t state_cond;
 pthread_mutex_t write_lock, delete_lock;
 FILE * output_file;
@@ -67,59 +67,61 @@ char * hashRecord_toString(hashRecord * hr)
 
 void insert_lock_acquire()
 {
-	printf("%ld: WRITE LOCK ACQUIRED\n", time(NULL));
-	pthread_mutex_lock(&write_lock);
-	if (queues[INSERT]++ == 1)
+	puts("aaaa");
+	if (++(queues[INSERT]) == 1)
 	{
+		puts("bbbb");
 		pthread_mutex_lock(&delete_lock);
 	}
+	pthread_mutex_lock(&write_lock);
+	printf("%ld: 1WRITE LOCK ACQUIRED\n", time(NULL));
 }
 
 void insert_lock_release()
 {
-	if (queues[INSERT]-- == 0)
+	puts("cccc");
+	if (--(queues[INSERT]) == 0)
 	{
+		puts("dddd");
 		pthread_cond_signal(&state_cond);
 		pthread_mutex_unlock(&delete_lock);
 	}
-	printf("%ld: WRITE LOCK RELEASED\n", time(NULL));
 	pthread_mutex_unlock(&write_lock);
+	printf("%ld: 1WRITE LOCK RELEASED\n", time(NULL));
 }
 
 void search_lock_acquire()
 {
 	queues[READ]++;
 	pthread_mutex_lock(&write_lock);
-	printf("%ld: READ LOCK ACQUIRED\n", time(NULL));
+	printf("%ld: 2READ LOCK ACQUIRED\n", time(NULL));
 }
 
 void search_lock_release()
 {
 	queues[READ]--;
 	pthread_mutex_unlock(&write_lock);
-	printf("%ld: READ LOCK RELASED\n", time(NULL));
+	printf("%ld: 2READ LOCK RELASED\n", time(NULL));
 }
 
-void delete_lock_acquire()
+void delete_lock_acquire(char * string)
 {
-	pthread_mutex_lock(&delete_lock);
 	if (queues[INSERT] > 0 || hash_record_head == NULL)
 	{
 		printf("%ld: WAITING ON INSERTS\n", time(NULL));
 		pthread_cond_wait(&state_cond, &delete_lock);
 		printf("%ld: DELETE AWAKENED\n", time(NULL));
 	}
+	printf("%ld: DELETE, %s\n", time(NULL), string);
 	pthread_mutex_lock(&write_lock);
-	printf("%ld: WRITE LOCK ACQUIRED\n", time(NULL));
+	printf("%ld: 3WRITE LOCK ACQUIRED\n", time(NULL));
 }
 
 void delete_lock_release()
 {
 	queues[DELETE]--;
-	pthread_cond_signal(&state_cond);
-	pthread_mutex_unlock(&delete_lock);
 	pthread_mutex_unlock(&write_lock);
-	printf("%ld: WRITE LOCK RELEASED\n", time(NULL));
+	printf("%ld: 3WRITE LOCK RELEASED\n", time(NULL));
 }
 
 #endif

@@ -60,9 +60,10 @@ int main(int argc, char * argv[])
 		hash_struct[i] = (hashRecord *) malloc(sizeof(hashRecord));
 		strsplit(items, check, ",");
 
-		printf("|| %s, %s, %d\n", items[0], items[1], atoi(items[2]));
+		//printf("|| %s,%s,%s", items[0], items[1], items[2]);
 
-		hash_struct[i]->name = items[1];
+		hash_struct[i]->name = (char *) malloc(strlen((items[1]) + 1) * sizeof(char));
+		strcpy(hash_struct[i]->name, items[1]);
 
 		if (strcmp(items[0], "insert") == 0) {
 			hash_struct[i]->salary = atoi(items[2]);
@@ -91,7 +92,11 @@ int main(int argc, char * argv[])
 
 	fclose(output_file);
 	for (size_t j = 0; j < processes_number; j++)
+	{
+		free(hash_struct[j]->name);
 		free(hash_struct[j]);
+	}
+		
 	free(hash_struct);
 
 	return 0;
