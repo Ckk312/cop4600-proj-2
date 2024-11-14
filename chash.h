@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <time.h>
+#include <sys/time.h>
 #include <string.h>
 
 // globals
@@ -65,6 +65,14 @@ char * hashRecord_toString(hashRecord * hr)
 	return ret;
 }
 
+uint64_t current_timestamp()
+{
+	struct timeval te;
+	gettimeofday(&te, NULL);
+	uint64_t microseconds = ((uint64_t)te.tv_sec * 1000000LL) + te.tv_usec;
+	return microseconds;
+}
+
 void insert_lock_acquire()
 {
 	puts("aaaa");
@@ -73,55 +81,54 @@ void insert_lock_acquire()
 		puts("bbbb");
 		pthread_mutex_lock(&delete_lock);
 	}
-	pthread_mutex_lock(&write_lock);
-	printf("%ld: 1WRITE LOCK ACQUIRED\n", time(NULL));
+	puts("cccc");
+	printf("%lld: 1WRITE LOCK ACQUIRED - %d\n", current_timestamp(), pthread_mutex_lock(&write_lock));
 }
 
 void insert_lock_release()
 {
-	puts("cccc");
+	puts("dddd");
 	if (--(queues[INSERT]) == 0)
 	{
-		puts("dddd");
+		puts("eeee");
 		pthread_cond_signal(&state_cond);
 		pthread_mutex_unlock(&delete_lock);
 	}
-	pthread_mutex_unlock(&write_lock);
-	printf("%ld: 1WRITE LOCK RELEASED\n", time(NULL));
+	printf("%lld: 1WRITE LOCK RELEASED - %d\n", current_timestamp(), pthread_mutex_unlock(&write_lock));
 }
 
 void search_lock_acquire()
 {
 	queues[READ]++;
 	pthread_mutex_lock(&write_lock);
-	printf("%ld: 2READ LOCK ACQUIRED\n", time(NULL));
+	printf("%lld: 2READ LOCK ACQUIRED\n", current_timestamp());
 }
 
 void search_lock_release()
 {
 	queues[READ]--;
 	pthread_mutex_unlock(&write_lock);
-	printf("%ld: 2READ LOCK RELASED\n", time(NULL));
+	printf("%lld: 2READ LOCK RELASED\n", current_timestamp());
 }
 
 void delete_lock_acquire(char * string)
 {
 	if (queues[INSERT] > 0 || hash_record_head == NULL)
 	{
-		printf("%ld: WAITING ON INSERTS\n", time(NULL));
+		printf("%lld: WAITING ON INSERTS\n", current_timestamp());
 		pthread_cond_wait(&state_cond, &delete_lock);
-		printf("%ld: DELETE AWAKENED\n", time(NULL));
+		printf("%lld: DELETE AWAKENED\n", current_timestamp());
 	}
-	printf("%ld: DELETE, %s\n", time(NULL), string);
+	printf("%lld: DELETE, %s\n", current_timestamp(), string);
 	pthread_mutex_lock(&write_lock);
-	printf("%ld: 3WRITE LOCK ACQUIRED\n", time(NULL));
+	printf("%lld: 3WRITE LOCK ACQUIRED\n", current_timestamp());
 }
 
 void delete_lock_release()
 {
 	queues[DELETE]--;
 	pthread_mutex_unlock(&write_lock);
-	printf("%ld: 3WRITE LOCK RELEASED\n", time(NULL));
+	printf("%lld: 3WRITE LOCK RELEASED\n", current_timestamp());
 }
 
 #endif
